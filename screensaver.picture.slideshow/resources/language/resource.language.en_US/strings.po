@@ -111,3 +111,7 @@ msgstr "Additional"
 msgctxt "#30029"
 msgid "Display background picture"
 msgstr "Display background picture"
+
+msgctxt "#30030"
+msgid "Carousel"
+msgstr "Carousel"

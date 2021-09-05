@@ -96,6 +96,7 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         self.slideshow_dim = hex(int('%.0f' % (float(100 - ADDON.getSettingInt('level')) * 2.55)))[2:] + 'ffffff'
         self.slideshow_random = ADDON.getSettingBool('random')
         self.slideshow_resume = ADDON.getSettingBool('resume')
+        self.slideshow_carousel = ADDON.getSettingBool('carousel')
         self.slideshow_scale = ADDON.getSettingBool('scale')
         self.slideshow_name = ADDON.getSettingInt('label')
         self.slideshow_date = ADDON.getSettingBool('date')
@@ -140,12 +141,12 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         # start with image 1
         cur_img = self.image1
         order = [1,2]
+        self.position = self.offset
         # loop until onScreensaverDeactivated is called
         while (not self.Monitor.abortRequested()) and (not self.stop):
-            # keep track of image position, needed to save the offset
-            self.position = self.offset
             # iterate through all the images
-            for img in items[self.offset:]:
+            for category in items:
+                img = category[self.position % len(category)]
                 # cache file may be outdated
                 if self.slideshow_type == 2 and not xbmcvfs.exists(img[0]):
                     continue
@@ -308,8 +309,7 @@ class Screensaver(xbmcgui.WindowXMLDialog):
                 # break out of the for loop if onScreensaverDeactivated is called
                 if  self.stop or self.Monitor.abortRequested():
                     break
-                self.position += 1
-            self.offset = 0
+            self.position += 1
             items = copy.deepcopy(self.items)
 
     def _get_items(self, update=False):
@@ -317,12 +317,16 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         log('slideshow type: %i' % self.slideshow_type)
 	    # check if we have an image folder, else fallback to video fanart
         if self.slideshow_type == 2:
-            hexfile = checksum(self.slideshow_path.encode('utf-8')) # check if path has changed, so we can create a new cache at startup
+            hexfile = checksum("{}{}".format(self.slideshow_path,self.slideshow_carousel).encode('utf-8')) # check if path has changed, so we can create a new cache at startup
             log('image path: %s' % self.slideshow_path)
+            log('carousel: {}'.format(self.slideshow_carousel))
             log('update: %s' % update)
             if (not xbmcvfs.exists(CACHEFILE % hexfile)) or update: # create a new cache if no cache exits or during the background scan
                 log('create cache')
-                create_cache(self.slideshow_path, hexfile)
+                if self.slideshow_carousel:
+                    create_cache(self.slideshow_path, 1, hexfile)
+                else:
+                    create_cache(self.slideshow_path, 0, hexfile)
             self.items = self._read_cache(hexfile)
             log('items: %s' % len(self.items))
             if not self.items:
@@ -339,17 +343,19 @@ class Screensaver(xbmcgui.WindowXMLDialog):
         # query the db
         if not self.slideshow_type == 2:
             self.items = []
+            self.items[0] = []
             for method in methods:
                 json_query = xbmc.executeJSONRPC('{"jsonrpc": "2.0", "method": "' + method[0] + '", "params": {"properties": ["art"]}, "id": 1}')
                 json_response = json.loads(json_query)
                 if 'result' in json_response and json_response['result'] != None and method[1] in json_response['result']:
                     for item in json_response['result'][method[1]]:
                         if 'fanart' in item['art']:
-                            self.items.append([item['art']['fanart'], item['label']])
+                            self.items[0].append([item['art']['fanart'], item['label']])
         # randomize
         if self.slideshow_random:
-            random.seed()
-            random.shuffle(self.items, random.random)
+                random.seed()
+                for category in self.items:
+                    random.shuffle(category, random.random)
 
     def _get_offset(self):
         try:

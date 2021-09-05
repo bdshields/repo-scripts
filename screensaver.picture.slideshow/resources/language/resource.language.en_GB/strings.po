@@ -121,3 +121,7 @@ msgstr ""
 msgctxt "#30029"
 msgid "Display background picture"
 msgstr ""
+
+msgctxt "#30030"
+msgid "Carousel"
+msgstr "Carousel"

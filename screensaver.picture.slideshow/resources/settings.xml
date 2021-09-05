@@ -89,6 +89,11 @@
 					</dependencies>
 					<control type="toggle"/>
 				</setting>
+				<setting help="" id="carousel" label="30030" type="boolean">
+					<level>0</level>
+					<default>false</default>
+					<control type="toggle"/>
+				</setting>
 			</group>
 			<group id="2">
 				<setting help="" id="background" label="30029" type="boolean">

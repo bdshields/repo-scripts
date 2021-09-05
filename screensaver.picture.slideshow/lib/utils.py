@@ -27,8 +27,8 @@ def log(txt):
 def checksum(path):
     return hashlib.md5(path).hexdigest()
 
-def create_cache(path, hexfile):
-    images = walk(path)
+def create_cache(path, categories, hexfile):
+    images = walk(path, categories)
     if not xbmcvfs.exists(CACHEFOLDER):
         xbmcvfs.mkdir(CACHEFOLDER)
     # remove old cache files
@@ -59,10 +59,11 @@ def get_excludes():
             pass
     return regexes
 
-def walk(path):
+def walk(path, category_depth=0):
     images = []
     folders = []
     excludes = get_excludes()
+    category_idx=0
     # multipath support
     if path.startswith('multipath://'):
         # get all paths from the multipath
@@ -93,7 +94,9 @@ def walk(path):
                             break
                 # filter out all images
                 if os.path.splitext(item)[1].lower() in IMAGE_TYPES and not fileskip:
-                    images.append([os.path.join(folder,item), ''])
+                    if len(images) == 0:
+                        images.append([])
+                    images[0].append([os.path.join(folder,item), ''])
             for item in dirs:
                 #check pictureexcludes from as.xml
                 dirskip = False
@@ -106,7 +109,15 @@ def walk(path):
                             break
                 # recursively scan all subfolders
                 if not dirskip:
-                    images += walk(os.path.join(folder,item,'')) # make sure paths end with a slash
+                    content = walk(os.path.join(folder,item,''), category_depth-1) # make sure paths end with a slash
+                    if len(content) > 0:
+                        if category_depth > 0:
+                            images += content
+                        else:
+                            if len(content[0]) > 0:
+                                if len(images) == 0:
+                                    images.append([])
+                                images[0] += content[0]
         else:
             log('folder does not exist')
     return images
